@@ -100,10 +100,9 @@ class MidasFile(object):
         return mag
 
 
-
 if __name__=='__main__':
     # example usage
-    file_path = r"C:\Users\vanderjt\Desktop\radarAudio\givenScripts\data\iq\angry_bear_sas.tmp"
+    file_path = r"C:\Users\fennelj1\Desktop\radarAudio\Radar_to_Audio\SynthRad21\data\iq\angry_bear_sas.tmp"
     print('Running tests on '+file_path+'...')
     mf = MidasFile(file_path)
     n_elements = mf.n_elements # read this many elements 
