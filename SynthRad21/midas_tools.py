@@ -133,6 +133,4 @@ if __name__=='__main__':
     #     # plt.colorbar()
     #     # plt.show() # close the plot to continue
 
-
-
 # test test test
