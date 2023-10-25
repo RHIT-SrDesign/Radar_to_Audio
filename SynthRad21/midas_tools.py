@@ -143,7 +143,7 @@ if __name__=='__main__':
     Pxx, freqs, bins, im = plt.specgram(npData,nfft,mf.sample_rate ,noverlap = nfft//2)   
     plt.grid()
     plt.subplot(3,1,3)
-    x = index[0::10]
-    y = (np.abs(npData))[0::10]
+    x = index[0::1000]
+    y = (np.abs(npData))[0::1000]
     plt.scatter(x,y)
     plt.show()  
