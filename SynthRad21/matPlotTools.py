@@ -51,6 +51,7 @@ def live_update(bw,Ax1=False,Ax2=False,Ax3=False,blit = False,t=1.0):
 
             # redraw just the points
             ax1.draw_artist(line)
+            ax1.draw_artist(text)
 
             # fill in the axes rectangle
             fig.canvas.blit(ax1.bbox)

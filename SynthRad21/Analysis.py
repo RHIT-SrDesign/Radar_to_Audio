@@ -31,7 +31,7 @@ nfft = int(pow(2, np.ceil(np.log(len(elements))/np.log(2))))
 print("computing fft")
 #Calculate fft information on signal
 N = (len(elements))
-nfft = nfft // 64
+nfft = nfft // 1024
 fftData=np.fft.fft(npData)
 fftFreq = np.fft.fftfreq(N,1/mf.sample_rate)
 fftData = fftData*(1/mf.sample_rate)
@@ -40,6 +40,8 @@ txt = "Frequency centered around {center}"
 txt=txt.format(center=cf)
 frq_amplitude = (1/N) * np.abs(fftData)
 frq_amplitude_db = 20*np.log10(frq_amplitude)
+avgPow= np.average(frq_amplitude_db)
+maxPow= np.max(frq_amplitude_db)
 print("plotting")
 
 #
@@ -49,9 +51,13 @@ plt.subplot(2,1,1)
 plt.plot(fftFreq,frq_amplitude_db)
 plt.xlabel(txt)
 plt.ylabel("Amplitude")
-plt.subplot(2,1,2)
-Pxx, freqs, bins, im = plt.specgram(npData,nfft,mf.sample_rate ,noverlap = nfft//64)   
-plt.grid()
+ax=plt.subplot(2,1,2)
+ax.set_xlabel("Time (s)")
+ax.set_ylabel("Tens of MHz")
+bounds = [avgPow,maxPow]
+Pxx, freqs, bins, im = plt.specgram(npData,nfft,mf.sample_rate ,noverlap = 9*nfft//10, mode = "magnitude",cmap="gnuplot")
+plt.colorbar().set_label('Intensity [dB]')
+plt.clim(-280,-140)
 # plt.subplot(3,1,3, markevery=25)
 # x = index[0::10]
 # y = (np.abs(npData))[0::10]
