@@ -19,21 +19,22 @@ UISIZE = np.array([10,6])
 
 # show 1 uS of data at once
 TIMETOSHOW = 1e-6
+STARTFREQ = 100e6
+ENDFREQ = 500e6
 
 # SDR Parameters
 sample_rate = 5e6 # samples per second
-center_freq = 100e6 # define a center frequency of 100 MHz for sampling
+center_freq = STARTFREQ # define a center frequency of 100 MHz for sampling
 num_samples = 256 # number of data points per call to rx()
 
-# number of columns per capture = num_samples, so whole thingy is 
-
-numrows = 100 # get at least this many rows of data before refreshing the plot
+numrows = 1 # get at least this many rows of data before advancing the center frequency
 
 # SDR max frequency points, equal to the sample rate with twice niquiust rate
 FREQPOINTS = num_samples 
 bw = sample_rate
 
-dataReady=True
+# find the number of sweeps
+numsweeps = math.ceil((ENDFREQ-STARTFREQ)/bw)
 
 # plot params
 window = 'hamming' # Type of window
@@ -98,6 +99,18 @@ def makeWindow(size):
     plt.ylabel("Magnitude")
 
     return fig, ax
+
+def fixAxis(ax):
+    # axis ticks
+    xticks = np.arange(num_samples,step=num_samples/10)
+
+    # axis labels
+    xlabels = center_freq+np.arange(-bw/2,bw/2,step=bw/10)
+    xlabels = xlabels/1e6
+    print(xlabels)
+
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xlabels)
 
 
 def plot(fig1, ax,data,rows):
@@ -192,15 +205,15 @@ def max_points_plot(data: np.ndarray, num_ffts,fft_len: int = 256, fft_div: int 
 
     for i in range(fft_len):
         for m in range(num_ffts):
-            if(data[i][m] > max_points[i]):
-                max_points[i] = data[i][m]
+            if(data[m][i] > max_points[i]):
+                max_points[i] = data[m][i]
 
     max_points_db = 20.0 * np.log10(max_points+1)
 
     return max_points_db
 
 def RollAndReplace(A, B, lenB):
-    # quickly roll A and tack B onto A
+    # quickly roll A and tack rows of B under A
     if(lenB < np.size(A,axis=0)):
         rowsToDelete = np.arange(lenB)
         A = np.delete(A, rowsToDelete, axis=0)
@@ -209,6 +222,15 @@ def RollAndReplace(A, B, lenB):
         A = B
     return A
 
+def ScrollAndReplace(A, B, widB):
+    # quickly scroll A and tack columns of B on the right of A
+    if(widB<np.size(A,axis=1)):
+        colsToDelete=np.arange(widB)
+        A = np.delete(A,colsToDelete,axis=1)
+        A=np.hstack((A,B))    
+    else:
+        A=B
+    return A
 
 
 
@@ -217,6 +239,8 @@ def main():
     sdr = initSDR()
 
     global fignum
+    global center_freq
+    global bw
 
     #sdr = 1
     #threadname=threading.Thread(target=)
@@ -236,40 +260,28 @@ def main():
         # get filename, bandwidth, time to capture, s/s, refresh rate
         #filename = input("input file name to save as \n")
         filename = "savedata.csv"
-        #timeToCapture = input("input time to capture in seconds \n")
-        timeToCapture = 10
-        #refreshRate = input("input refresh rate in seconds \n")
-        refreshRate = 1e-1
+        
 
         # define data array to save
-        fullDataRows = int(sample_rate * timeToCapture)
+        #fullDataRows = int(sample_rate * timeToCapture)
         #fullData = np.empty([fullDataRows,FREQPOINTS])
+
         # define data array to plot
-        plotDataRows = int(sample_rate * TIMETOSHOW)
-        plotData = np.empty([plotDataRows,FREQPOINTS])
-
-        #define some times
-        startTime = time.time()
-        runTime = startTime+timeToCapture
-        lastRefresh = startTime
-
+        plotDataRows = numrows
+        plotData = np.empty([plotDataRows,numsweeps*FREQPOINTS])
 
         # store newDataWindow and newDataWindowSize
-        # calculate how big it needs to be, add 20% just in case
-        newDataWindowMaxRows = min(math.ceil(sample_rate * refreshRate * 1.2),plotDataRows)
-        
+        newDataWindowMaxRows = numrows
         newDataWindow = np.empty([newDataWindowMaxRows,FREQPOINTS])
+        
         # store how many new data points are in the window, start with zero
         newDataWindowSize = 0 
 
-        # while time < time to capture
-        while time.time() < runTime:
+        # while we have frequency left to sweep
+        while center_freq<ENDFREQ:
             
             # wait for new data
-            while dataReady == False:
-                # do nothing
-                pass
-            
+
             # perhaps thread the newData PSD finding, the plotting, and the data rolling into different threads
 
             # get data from SDR, and the number of rows in new data points
@@ -279,49 +291,36 @@ def main():
             # make a reshaped psd with the data
             newData = shapePSD(newData,newDataSize)        
 
+            # correct for the new size
             newDataSize = np.size(newData,axis=0)
             #dataReady = false
 
             # append newData rows to fullData rows
             #fullData = np.append(fullData,newData,axis=0)
 
-            # if we have room in our buffer
-            if (newDataWindowSize+newDataSize) <= plotDataRows:
-                # append newData to newdatawindow
-                newDataWindow = RollAndReplace(newDataWindow,newData,newDataSize)
-                # keep track of how many rows the new data is
-                newDataWindowSize = newDataWindowSize + newDataSize
-            else:
-                print("WARNING: Overwriting plot data, plot refresh rate or plot buffer too small")
+            newDataWindow = RollAndReplace(newDataWindow,newData,newDataSize)
+            # keep track of how many rows the new data is
+            newDataWindowSize = newDataWindowSize + newDataSize
+            
+            # capture numrows at once
+            if(newDataWindowSize > numrows):
 
-                newDataWindow = RollAndReplace(newDataWindow,newData,newDataSize)
-
-                newDataWindowSize = plotDataRows
-
-            # if its time to refresh the plot
-            #if (time.time() > lastRefresh + refreshRate):
-            if(newDataWindowSize > numrows or time.time() > lastRefresh + refreshRate):
-
-                if(newDataWindowSize > numrows):
-                    print("Warning: refresh time too slow")
-
-                # reset lastRefresh to current time
-                lastRefresh = time.time()
-
-                # get rid of all non-data in the newDataWindow
-                print(newDataWindowSize)
-                rowsToDelete = np.arange(newDataWindowMaxRows - newDataWindowSize)
-                newDataWindow = np.delete(newDataWindow, rowsToDelete, axis=0)
-
-                # slide the window for plotData
-                plotData = RollAndReplace(plotData,newDataWindow,newDataWindowSize)
+                # slide the window for plotData (fix)
+                plotData = ScrollAndReplace(plotData,newDataWindow,FREQPOINTS)
 
                 # plot data onto window
                 print("refresh")
                 
                 print(np.shape(plotData))
                 fignum = fignum + 1
-                plot(fig1,ax, plotData,plotDataRows)
+                plot(fig1,ax, plotData,numrows)
+
+                # advance the center frequency
+                center_freq = center_freq + bw
+                sdr.rx_lo = int(center_freq) 
+
+                # redraw the axis
+                fixAxis(ax)
 
                 # clear the newDataWindow
                 newDataWindow = np.empty([newDataWindowMaxRows,FREQPOINTS])
