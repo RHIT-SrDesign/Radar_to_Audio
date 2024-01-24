@@ -2,3 +2,4 @@ data01 has 1024 length sequences, long sequences are decimated by 100, Noise bet
 data02 Noise between -10 and 20dB
 data03 has fft of short and long sequences, -10dB to 20dB
 04 also includes modulation types in column 2 of labels. 0 to 20dB. Training data contains the second half of the emitters, test contains the other half.
+05 is generated from scratch. Labels: PW between 0 and 1000us. PRI between 0 and 1000us. 10 to 20dB. No modulation, always 0.
