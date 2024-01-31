@@ -45,7 +45,7 @@ frq_amplitude_db = 20*np.log10(frq_amplitude)
 amplitude = np.abs(npData)
 print("plotting")
 
-wav.signal2wav(mf.sample_rate,npData,'audio.wav')
+wav.signal2wav(mf.sample_rate,npData)
 
 # plt.subplot(2,1,1)
 # plt.plot(fftFreq,frq_amplitude_db)
