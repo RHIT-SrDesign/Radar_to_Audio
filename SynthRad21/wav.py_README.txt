@@ -1,0 +1,8 @@
+How to use wav.py
+wav.py is the python file that takes the simulated iq data in and outputs a .wav file called "audio.wav" that then can be played. the syntax is as follows: 
+
+wav.signal2wav(mf.sample_rate,npData);
+mf.sample_rate = sample rate of the signal
+npData = simulated iq data
+
+This command should store the audio.wav file into the same destination where the wav.py file is stored, so finding that file shold be simple for playing later. 
