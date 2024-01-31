@@ -5,9 +5,11 @@ import time
 import numpy as np
 import scipy.signal as sig
 from matplotlib import pyplot as plt
-import midas_tools as midas
+import midas_tools as midas 
+import wav
 
-file_path = r"SynthRad21\angry_bear_sas.tmp"
+file_path = r"C:\\Users\\fennelj1\\Desktop\\radarAudio\\Radar_to_Audio\\angry_bear_sas.tmp"
+#file_path = r"C:\\Users\\fennelj1\\Desktop\\radarAudio\\Radar_to_Audio\\angry_alpaca_sas.tmp"
 print('Running tests on '+file_path+'...')
 mf = midas.MidasFile(file_path)
 n_elements = mf.n_elements # read this many elements 
@@ -40,20 +42,20 @@ txt = "Frequency centered around {center}"
 txt=txt.format(center=cf)
 frq_amplitude = (1/N) * np.abs(fftData)
 frq_amplitude_db = 20*np.log10(frq_amplitude)
+amplitude = np.abs(npData)
 print("plotting")
 
-#
+wav.signal2wav(mf.sample_rate,npData,'audio.wav')
 
-
-plt.subplot(2,1,1)
-plt.plot(fftFreq,frq_amplitude_db)
-plt.xlabel(txt)
-plt.ylabel("Amplitude")
-plt.subplot(2,1,2)
-Pxx, freqs, bins, im = plt.specgram(npData,nfft,mf.sample_rate ,noverlap = nfft//64)   
-plt.grid()
-# plt.subplot(3,1,3, markevery=25)
-# x = index[0::10]
-# y = (np.abs(npData))[0::10]
-# plt.scatter(x,y)
-plt.show()  
+# plt.subplot(2,1,1)
+# plt.plot(fftFreq,frq_amplitude_db)
+# plt.xlabel(txt)
+# plt.ylabel("Amplitude")
+# plt.subplot(2,1,2)
+# Pxx, freqs, bins, im = plt.specgram(npData,nfft,mf.sample_rate ,noverlap = nfft//64)   
+# plt.grid()
+# # plt.subplot(3,1,3, markevery=25)
+# # x = index[0::10]
+# # y = (amplitude)[0::10]
+# # plt.scatter(x,y)
+# plt.show()  
