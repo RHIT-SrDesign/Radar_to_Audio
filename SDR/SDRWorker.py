@@ -18,7 +18,6 @@ from tkinter import filedialog
 from PIL import Image, ImageTk
 from datetime import datetime
 import threading
-from midas_tools import MidasFile
 import csv
 from itertools import zip_longest
 import warnings
@@ -206,7 +205,7 @@ def cap(start,stop,numcaps,Filename,limplot):
     plutomax = 2**14 # The PlutoSDR expects samples to be between -2^14 and +2^14, not -1 and +1 like some SDRs
 
     center_freq = STARTFREQ # define a center frequency of 100 MHz for sampling
-    num_samples = 256 # number of data points per call to rx() after smoothing
+    num_samples = 1024 # number of data points per call to rx() after smoothing
 
     # gain parameters
     RXGAIN = 60 # 0-90 dB
@@ -342,5 +341,5 @@ def cap(start,stop,numcaps,Filename,limplot):
     
     # clean up the threads    
     t3.join()
-
+    
     return True

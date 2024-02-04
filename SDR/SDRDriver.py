@@ -76,7 +76,7 @@ def runProc(start,stop,numcaps,limplot):
     # ... and so on and so forth
 
     OVERHEAD = 8
-    n_per_shift = 256
+    n_per_shift = 1024
     file_path = "dump.csv"
 
     # start scanning!
