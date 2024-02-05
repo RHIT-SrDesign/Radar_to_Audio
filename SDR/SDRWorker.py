@@ -110,15 +110,12 @@ def plot(ax,data,xticks,xlabels):
     plt.draw()
     plt.pause(0.1)
 
-def addToFile(filename,data,capnum,captime,caplen):
+def addToFile(data,capnum,captime,caplen):
     global done
     done = False
-   
-    with open(filename, 'r') as file:
-        reader = csv.reader(file)
-        # read the current state of the file
-        rows = list(reader)
-    
+
+    global rows
+
     # write the capture number and the capture time to the file
     capnumrow = rows[4]
     captimerow = rows[5]
@@ -151,14 +148,7 @@ def addToFile(filename,data,capnum,captime,caplen):
             # write I and Q
             rows[rownum].append(f'{data[datarow][0]}')
             rows[rownum].append(f'{data[datarow][1]}')
-            datarow += 1
-
-    # write the updated rows back to the file
-    with open(filename, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerows(rows)
-    
-    #global done   
+            datarow += 1   
     
     done = True
 
@@ -237,7 +227,6 @@ def cap(start,stop,numcaps,Filename,limplot):
     filename = Filename
     with open(filename, 'w', newline='') as file:
         writer = csv.writer(file)
-        reader = csv.reader(file)
         ## Write the CSV in the following format:
         # date of capture, 'date' # indicates the date and time of the following data recording
         # sample_rate,    'sample_rate' # indicates the sample rate at which the following data was taken in Hz
@@ -250,6 +239,9 @@ def cap(start,stop,numcaps,Filename,limplot):
         #2,              i1,    q1,    i2,   q2,   i3,   q3,  # iq data at t2 = t1 + 1/sample_rate
         #3,              i1,    q1,    i2,   q2,   i3,   q3,  # iq data at t3 = t2 + 1/sample_rate
         # ... and so on and so forth
+
+        
+    
 
         header = [  
             ["date of capture",datetime.now()],
@@ -266,6 +258,14 @@ def cap(start,stop,numcaps,Filename,limplot):
         # write the first column with the data index
         for i in range(numsweeps*num_samples):
             writer.writerow([str(i)])
+
+    with open(filename, 'r', newline='') as file:
+        # list the rows for later editing
+        reader = csv.reader(file)
+        global rows
+        rows = list(reader)
+
+        
 
     # allocate memory for incoming data and full data array
     data = np.empty(shape=(1,num_samples))
@@ -334,12 +334,18 @@ def cap(start,stop,numcaps,Filename,limplot):
 
         # save the data to the file
         #may need to save time at which the grab was performed, or it may be fast enough
-        t3 = threading.Thread(target=addToFile,args=(filename,bigrawdata,k,bigtimeelapse,timeelapse), daemon=True)
+        t3 = threading.Thread(target=addToFile,args=(bigrawdata,k,bigtimeelapse,timeelapse), daemon=True)
         t3.start()
 
         
     
     # clean up the threads    
     t3.join()
+        # write the updated rows back to the file
+    with open(filename, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(rows)
+    
+    #global done
     
     return True
