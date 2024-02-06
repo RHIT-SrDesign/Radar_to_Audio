@@ -1,23 +1,24 @@
 import PySimpleGUI as sg
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from io import BytesIO
+import UIHelper as ui
+import Analysis 
+# import SDRexample as SDR
 
 sg.theme('DarkAmber')
 
 
 file_path = None
- 
+live = False
+running = False
 control_col = [
-    [sg.Button('Load Sim Data', key = '-Sim-'),sg.Button('Connect Live Data', key = '-Live-')],
-    [sg.Frame('Volume',layout = [[sg.Slider(range = (0,100), orientation = 'h', key = '-BLUR-')]])],
+    [sg.Button('Load Sim Data', key = '-Sim-'),sg.Button('Reciever Mode', key = '-Live-')],
+    [sg.Button('Run Reciever', key = '-recieve-'),sg.Button('Load Current Data', key = '-Load-')],
+    [sg.Frame('Volume',layout = [[sg.Slider(range = (0,100), orientation = 'h', key = '-Vol-')]])],
     [sg.Button('Pause', key = '-Pause-'),sg.Button('Play', key = '-Play-')]
     ]
 
-table_content = []
-
 CFA  = [('\u2B24'+' No Freq Agility', 'red'), ('\u2B24'+' Frequency Agile', 'green')]
-
 CFState=0
 PRIA =[('\u2B24'+' No PRI Agility', 'red'), ('\u2B24'+' PRI Agile', 'green')]
 PRIState=0
@@ -26,7 +27,7 @@ PWState = 0
 
 image_col = [
     [sg.Text(text=CFA[CFState][0], text_color=CFA[CFState][1], key='INDICATOR1'), sg.Text(text=PRIA[PRIState][0], text_color=CFA[PRIState][1], key='INDICATOR2'),sg.Text(text=PWA[PWState][0], text_color=CFA[PWState][1], key='INDICATOR3')],
-    [sg.Image('SynthRad21\Angry_bear.GIF', key = 'display')],
+    [sg.pin(sg.Image(key='-IMAGE-'))]
 
     
 ]
@@ -47,8 +48,29 @@ while True:
     if event == sg.WIN_CLOSED:
         break
     if event == '-Sim-':
+        plt.clf()
         file_path=sg.popup_get_file('Open',no_window = True)
-        window.Element('display').update(filename=file_path)
+        window['-IMAGE-'].update(visible=True)
+        if (file_path != None):
+            image = Analysis.execute(file_path)
+            print("image created")
+            ui.draw_figure(window['-IMAGE-'], image)
+            #window['-IMAGE-'].update()
     if event == '-Live-':
-        window.Element('-Live-').Update(('Not Availible'), button_color=(('white', ('red'))))
+        live = not live
+        window.Element('-Live-').update(text='Reciever Mode On' if live else 'Reciever Mpde Off', button_color='white on green' if live else 'white on red')
+    # if event == 'Run Receiever':
+    #     if running == False:
+    #         running = SDR.SDRRun(running)
+    #     else:
+    #         pass
+    
+
+    # if event == '-Load-':
+        
+
+    if event == sg.WIN_CLOSED:
+        break
+
+
 window.close()

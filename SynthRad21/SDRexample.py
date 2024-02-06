@@ -9,7 +9,8 @@ numcaps = 10 # grab this signal 5 times
 limplot = False # dont plot while capturing
 
 
-def main():
+def SDRRun(state_var = False):
+    state_var = not state_var
     # run the SDR, wait for it to be done
     print("running sweeps")
     while not SDRDriver.runProc(start,end,numcaps,limplot):
@@ -40,7 +41,5 @@ def main():
     plt.ylabel('Power/Frequency (dB/Hz)')
     plt.grid(True)
     plt.show()
-
-
-if __name__ == main():
-    main()
+    state_var = not state_var
+    return state_var

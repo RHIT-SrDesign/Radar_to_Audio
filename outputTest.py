@@ -3,7 +3,7 @@ import PySimpleGUI as sg
 sg.theme("DarkBlue3")
 sg.set_options(font=("Courier New", 16))
 
-status = [('\u2B24'+' Disconnect', 'red'), ('\u2B24'+' Connect', 'green')]
+status = [('\u2B24'+' Disconnect', 'red'), ('\u2B24 '+' Connect', 'green')]
 state = 0
 
 layout = [
