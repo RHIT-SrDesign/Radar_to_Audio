@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-start = 2.5e9 # start at 2.4 GHz
+start = 2.0e9 # start at 2.4 GHz
 end = 3.0e9 # end at 2.9 Ghz
-numcaps = 100 # grab this signal 5 times
+numcaps = 3 # grab this signal 5 times
 limplot = False # dont plot while capturing
 
 
@@ -20,21 +20,17 @@ def main():
 
     print("done running sweeps")
 
-
     # Plot the time domain data points
     plt.figure(figsize=(10, 6))
-    plt.plot(np.abs(data))
+    plt.plot(time,data)
     plt.xlabel('Time')
     plt.ylabel('Amplitude')
     plt.legend()
     plt.grid(True)
     plt.show()
     
-    # find the PSD
-    power_spectral_density = np.abs(fft)**2 / len(data)
-
     # Plot power spectral density in dB
-    plt.plot(freqs, 10 * np.log10(power_spectral_density))
+    plt.plot(freqs, fft.T)
     plt.title('Power Spectral Density')
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Power/Frequency (dB/Hz)')

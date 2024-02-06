@@ -40,32 +40,6 @@ def returnMeta(file_path):
 
     return [captime,sample_rate,center_freq,freq_span,capnums,captimes,capdurs] 
 
-def normresh(data,samples,sweeps):
-    # collapses the data matrix given in data along the time axis to create samples sample long representation of the signal that may have been present in that sweep. Then completes this sweeps times for each sweep. returns a 1 x (samples*sweeeps) array.
-
-    # create an empty array to store all this data in
-    normresh_data = np.empty(shape=(sweeps,samples),dtype=np.complex128)
-
-    #print(np.shape(data))
-    for i in range(1,sweeps,1):
-        # grab the current column
-        cur_data = data[:,i]
-        # reshape this columm into a matrix of every row has samples number of elements and as many columns as we need
-        reshaped_data = cur_data.reshape(-1, samples)
-        # sum along the columns to get a single samples long array
-        summed_subarrays = np.sum(reshaped_data, axis=0)
-        
-        #print(np.shape(summed_subarrays))
-
-        # add this to our data array to store
-        normresh_data[i][:] = summed_subarrays
-        
-    # flatten the normresh_data to get a single 1xsamples*sweeps array
-    
-    normresh_data = normresh_data.ravel()
-
-    return normresh_data
-
 def runProc(start,stop,numcaps,limplot):
     # read in CSV file
     # date of capture, 'date' # indicates the date and time of the following data recording
@@ -106,51 +80,59 @@ def runProc(start,stop,numcaps,limplot):
         capdurs = metadata[6]
 
         # find number of data points in the file
-        numcols = max([int(s) for s in rows[4][1:]])
+        numcols = max([int(s) for s in rows[4][1:]]) + 1
         numrows = len(rows) - OVERHEAD
         
+        # store the fft result in the columns, and each additional cap fft in the rows
         global fft    
-        fft = np.empty(shape=(numrows,numcols),dtype=np.complex128)
+        fft = np.empty(shape=(numcols,numrows),dtype=np.complex128)
 
         # fill the data array full of data
-        for i in range(1,2*(numcols-1),2):
+        colnum = 0
+        for i in range(1,2*(numcols)+1,2):
+
+            littlearr = np.empty(shape=(numrows,1),dtype=np.complex128)
+
             for k in range(OVERHEAD,numrows,1):
                 real = float(rows[k][i])
                 imag = float(rows[k][i+1])    
-                fft[k][int(i/2)] = complex(real,imag)
+                littlearr[k] = complex(real,imag)
 
-    # find the number of sweeps and normresh the data
-    sweeps = numcols/2
+            fft[colnum][:] = littlearr.T
+            colnum = colnum + 1
 
     global freqs
-    freqs = np.linspace(center_freq-freq_span/2,center_freq+freq_span/2,len(fft)) 
+    freqs = np.linspace(center_freq-freq_span/2,center_freq+freq_span/2,np.shape(fft)[1]) 
 
     # Perform iFFT
     global data
     data = np.fft.ifft(fft)
+    
 
     # calculate how long in seconds we sample for in the SDR
     time_per_samp = n_per_shift/sample_rate
-
     # we now have this new higher effective sample rate which we can use to get the time series data
-    new_sample_rate = np.shape(data)[0]/time_per_samp
-
+    new_sample_rate = np.shape(data)[1]/time_per_samp
     # create the time array
     global time
     time = np.array([])
     
     # we have 
-    capnum = max(capnums)
+    capnum = max(capnums)+1
     for i in range(capnum):
         starttime = captimes[i]
 
-        endtime = starttime + n_per_shift/new_sample_rate
+        endtime = starttime + n_per_shift/sample_rate
 
         littletime = np.arange(starttime,endtime,1/new_sample_rate)
         
         time = np.hstack((time,littletime)) 
+
     
     
+    data = data.ravel()
+    time = time[0:np.shape(data)[0]]
+
     # assemble frequency domain representation of the captured signal
     
     # Assuming the signal being broadcast is constant across the entire frequency sweep, we can add every 256 samples together to create a picture of the entire frequency spectrum

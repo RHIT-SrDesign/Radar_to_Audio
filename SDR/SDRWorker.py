@@ -83,7 +83,7 @@ def getData(sdr,num_samples):
     return data
 
 def takefft(data):
-    psd = np.abs(np.fft.fftshift(np.fft.fft(data)))
+    psd = np.fft.fftshift(np.fft.fft(data))
     psd_dB = 20*np.log10(psd)
 
     return psd_dB
@@ -249,10 +249,8 @@ def cap(start,stop,n_per_shift,numcaps,Filename,limplot):
 
     # allocate memory for incoming data and full data array
     data = np.empty(shape=(1,num_samples))
-    bigdata = np.empty(shape=(numsweeps,num_samples))
-    
     rawdata = np.empty(shape=(1,num_samples),dtype=np.complex128)
-    bigrawdata = np.empty(shape=(numsweeps,num_samples),dtype=np.complex128)
+    bigdata = np.empty(shape=(numsweeps,num_samples),dtype=np.complex128)
 
     bigstart = datetime.now()
     for k in range(numcaps):
