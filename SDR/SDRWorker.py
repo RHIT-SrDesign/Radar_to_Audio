@@ -152,26 +152,6 @@ def addToFile(data,capnum,captime,caplen):
     
     done = True
 
-    
-def remix(data,freqdif,sample_rate):
-    # mix the data up or down by freqdif 
-    
-    # Perform FFT
-    fft_result = np.fft.fft(data)
-    
-    # generates from -25 to 25 MHz
-    # Generate frequency axis
-    frequencies = np.fft.fftfreq(len(data), 1/sample_rate)
-
-    # Apply frequency shift
-    shifted_fft_result = fft_result * np.exp(1j * 2 * np.pi * freqdif * frequencies)
-
-
-    # Perform IFFT with shifted frequencies
-    data = np.fft.ifft(np.fft.fftshift(shifted_fft_result))
-
-    return data
-
 
 def cap(start,stop,n_per_shift,numcaps,Filename,limplot):
 

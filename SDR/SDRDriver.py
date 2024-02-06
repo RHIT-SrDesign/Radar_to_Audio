@@ -83,7 +83,7 @@ def runProc(start,stop,numcaps,limplot):
 
     OVERHEAD = 8
     n_per_shift = 102400
-    file_path = "AirportDoppler8.csv"
+    file_path = "dump.csv"
 
     # start scanning!
     while not SDRWorker.cap(start,stop,n_per_shift,numcaps,file_path,limplot):
@@ -129,27 +129,24 @@ def runProc(start,stop,numcaps,limplot):
     global data
     data = np.fft.ifft(fft)
 
-    global time
-    littletimelen = n_per_shift
+    # calculate how long in seconds we sample for in the SDR
+    time_per_samp = n_per_shift/sample_rate
 
-    
+    # we now have this new higher effective sample rate which we can use to get the time series data
+    new_sample_rate = np.shape(data)[0]/time_per_samp
 
-
-
-    # placeholder
-    #time = np.arange(123)
-
-    numsamples = np.shape(data)[0]
-
+    # create the time array
     global time
     time = np.array([])
-    # create the time array
+    
+    # we have 
     capnum = max(capnums)
     for i in range(capnum):
         starttime = captimes[i]
-        duration = capdurs[i]
 
-        littletime = np.arange(starttime,starttime+duration,1/sample_rate)
+        endtime = starttime + n_per_shift/new_sample_rate
+
+        littletime = np.arange(starttime,endtime,1/new_sample_rate)
         
         time = np.hstack((time,littletime)) 
     
