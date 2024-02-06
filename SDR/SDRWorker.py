@@ -83,8 +83,8 @@ def getData(sdr,num_samples):
     return data
 
 def takefft(data):
-    psd = np.abs(np.fft.fftshift(np.fft.fft(data)))**2
-    psd_dB = 10*np.log10(psd)
+    psd = np.abs(np.fft.fftshift(np.fft.fft(data)))
+    psd_dB = 20*np.log10(psd)
 
     return psd_dB
 
@@ -173,7 +173,7 @@ def remix(data,freqdif,sample_rate):
     return data
 
 
-def cap(start,stop,numcaps,Filename,limplot):
+def cap(start,stop,n_per_shift,numcaps,Filename,limplot):
 
     # define the size of the window
     global UISIZE 
@@ -195,7 +195,7 @@ def cap(start,stop,numcaps,Filename,limplot):
     plutomax = 2**14 # The PlutoSDR expects samples to be between -2^14 and +2^14, not -1 and +1 like some SDRs
 
     center_freq = STARTFREQ # define a center frequency of 100 MHz for sampling
-    num_samples = 1024 # number of data points per call to rx() after smoothing
+    num_samples = n_per_shift # number of data points per call to rx()
 
     # gain parameters
     RXGAIN = 60 # 0-90 dB
@@ -286,28 +286,17 @@ def cap(start,stop,numcaps,Filename,limplot):
         for i in range(numsweeps):        
             # get the data from the SDR in a [1 x num_samples] array, save it to a big array
             rawdata = getData(sdr,num_samples)
-        
-            if(limplot):
-                # take the fft of the data 
-                data = takefft(rawdata)
 
-            # mix/demix the raw data up or down a little bit to be all in the same center frequency
-            freqdif = bigcenter - center_freq 
-            rawdata = remix(rawdata,freqdif,sample_rate)
+            data=takefft(rawdata)
 
-            # save it to the big array
-            bigrawdata[i] = rawdata
-
-        
             
-            # plot the data onto the graph
+            # subtract off the rx gain 
+            data = data - RXGAIN
+
+            # add data to bigdata
+            bigdata[i] = data
+
             if limplot:
-                # subtract off the rx gain 
-                data = data - RXGAIN
-
-                # add data to bigdata
-                bigdata[i] = data
-
                 plot(ax,bigdata,xticks,xlabels)            
 
             # increase the center frequency
@@ -334,7 +323,7 @@ def cap(start,stop,numcaps,Filename,limplot):
 
         # save the data to the file
         #may need to save time at which the grab was performed, or it may be fast enough
-        t3 = threading.Thread(target=addToFile,args=(bigrawdata,k,bigtimeelapse,timeelapse), daemon=True)
+        t3 = threading.Thread(target=addToFile,args=(bigdata,k,bigtimeelapse,timeelapse), daemon=True)
         t3.start()
 
         

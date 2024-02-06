@@ -1,0 +1,43 @@
+import SDRDriver
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+filename = 'AirportDoppler6.csv'
+n_per_shift = 102400
+
+def main():
+    # run the SDR, wait for it to be done
+    print("running sweeps")
+    while not SDRDriver.getProc(filename,n_per_shift):
+        pass
+    
+    # retrieve the data from this sweep
+    [data, time, fft, freqs] = SDRDriver.returnData()
+
+    print("done running sweeps")
+
+
+    # Plot the time domain data points
+    plt.figure(figsize=(10, 6))
+    plt.plot(np.abs(data)[102400:2*102400])
+    plt.xlabel('Time')
+    plt.ylabel('Amplitude')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
+    # find the PSD
+    power_spectral_density = np.abs(fft)**2 / len(data)
+
+    # Plot power spectral density in dB
+    plt.plot(freqs, 10 * np.log10(power_spectral_density))
+    plt.title('Power Spectral Density')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Power/Frequency (dB/Hz)')
+    plt.grid(True)
+    plt.show()
+
+
+if __name__ == main():
+    main()
