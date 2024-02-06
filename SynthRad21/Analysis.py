@@ -1,6 +1,7 @@
 import io
 import sys,os
 import gc
+import wav
 from pdb import set_trace
 import time
 import numpy as np
@@ -79,3 +80,13 @@ def execute(file ): #= r"SynthRad21\angry_bear_sas.tmp",
     # fig.clim(-280,-140)
     
     return fig
+
+def audio(file):
+    file_path = file
+    mf = midas.MidasFile(file_path)
+    n_elements = mf.n_elements # read this many elements 
+    n_overlap = int(n_elements/2) # overlap by a non-integer multiple just to check that things appear to be working
+    npData = mf._read_stream(n_elements,n_overlap=n_overlap)
+    fs = mf.sample_rate
+    sound = wav.signal2wav(fs,npData)
+    return sound

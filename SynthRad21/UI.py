@@ -3,19 +3,22 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import UIHelper as ui
 import Analysis 
+from pygame import mixer
+import pygame
 # import SDRexample as SDR
 
 sg.theme('DarkAmber')
 
-
+mixer.init()
 file_path = None
 live = False
 running = False
+is_playing = False
 control_col = [
     [sg.Button('Load Sim Data', key = '-Sim-'),sg.Button('Reciever Mode', key = '-Live-')],
     [sg.Button('Run Reciever', key = '-recieve-'),sg.Button('Load Current Data', key = '-Load-')],
     [sg.Frame('Volume',layout = [[sg.Slider(range = (0,100), orientation = 'h', key = '-Vol-')]])],
-    [sg.Button('Pause', key = '-Pause-'),sg.Button('Play', key = '-Play-')]
+    [sg.Button('Play', key = '-Play-'),sg.Button('Pause', key = '-Pause-'),sg.Button('Stop', key = '-Stop-')]
     ]
 
 CFA  = [('\u2B24'+' No Freq Agility', 'red'), ('\u2B24'+' Frequency Agile', 'green')]
@@ -42,7 +45,8 @@ layout = [[sg.Column(control_col,element_justification='center',vertical_alignme
  
 window = sg.Window('Radar Vis', layout, finalize=True, resizable=True)
 
- 
+pygame.init()
+
 while True:
     event, values = window.read(timeout = 50)
     if event == sg.WIN_CLOSED:
@@ -51,14 +55,20 @@ while True:
         plt.clf()
         file_path=sg.popup_get_file('Open',no_window = True)
         window['-IMAGE-'].update(visible=True)
+        audioWave = Analysis.audio(file_path)
+        audio = mixer.Sound("audio.wav")
         if (file_path != None):
             image = Analysis.execute(file_path)
             print("image created")
             ui.draw_figure(window['-IMAGE-'], image)
-            #window['-IMAGE-'].update()
+            print("plot on screen now!")
     if event == '-Live-':
         live = not live
         window.Element('-Live-').update(text='Reciever Mode On' if live else 'Reciever Mpde Off', button_color='white on green' if live else 'white on red')
+    if event == '-Play-':
+        is_playing = True
+        audio_channel = mixer.Channel(2)
+        audio_channel.play(audio)
     # if event == 'Run Receiever':
     #     if running == False:
     #         running = SDR.SDRRun(running)
