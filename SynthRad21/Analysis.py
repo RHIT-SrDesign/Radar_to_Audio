@@ -79,14 +79,11 @@ def execute(file ): #= r"SynthRad21\angry_bear_sas.tmp",
     # fig.colorbar().set_label('Intensity [dB]')
     # fig.clim(-280,-140)
     
+    fs = mf.sample_rate
+    wav.signal2wav(fs,npData)
+    
     return fig
 
-def audio(file):
-    file_path = file
-    mf = midas.MidasFile(file_path)
-    n_elements = mf.n_elements # read this many elements 
-    n_overlap = int(n_elements/2) # overlap by a non-integer multiple just to check that things appear to be working
-    npData = mf._read_stream(n_elements,n_overlap=n_overlap)
-    fs = mf.sample_rate
-    sound = wav.signal2wav(fs,npData)
-    return sound
+
+    
+    

@@ -12,6 +12,7 @@ sg.theme('DarkAmber')
 mixer.init()
 file_path = None
 live = False
+pause = False
 running = False
 is_playing = False
 control_col = [
@@ -55,7 +56,6 @@ while True:
         plt.clf()
         file_path=sg.popup_get_file('Open',no_window = True)
         window['-IMAGE-'].update(visible=True)
-        audioWave = Analysis.audio(file_path)
         audio = mixer.Sound("audio.wav")
         if (file_path != None):
             image = Analysis.execute(file_path)
@@ -67,8 +67,26 @@ while True:
         window.Element('-Live-').update(text='Reciever Mode On' if live else 'Reciever Mpde Off', button_color='white on green' if live else 'white on red')
     if event == '-Play-':
         is_playing = True
-        audio_channel = mixer.Channel(2)
+        audio_channel = mixer.Channel(0)
         audio_channel.play(audio)
+    if is_playing == True:
+        if not audio_channel.get_busy():
+            audio_channel.queue(audio)
+    if event == '-Pause-':
+        window.Element('-Pause-').update(text='pause' if pause else 'resume')
+        pause = not pause
+        if pause:
+            audio_channel.pause()
+        else:
+            audio_channel.unpause()
+                
+    if event == '-Stop-':
+        is_playing = False
+        audio_channel.stop()
+    
+    
+
+    
     # if event == 'Run Receiever':
     #     if running == False:
     #         running = SDR.SDRRun(running)
