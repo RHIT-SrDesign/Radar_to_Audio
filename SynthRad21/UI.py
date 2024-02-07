@@ -70,6 +70,7 @@ while True:
         audio_channel = mixer.Channel(0)
         audio_channel.play(audio)
     if is_playing == True:
+        audio_channel.set_volume(values['-Vol-']/100)
         if not audio_channel.get_busy():
             audio_channel.queue(audio)
     if event == '-Pause-':
@@ -83,7 +84,7 @@ while True:
     if event == '-Stop-':
         is_playing = False
         audio_channel.stop()
-    
+   
     
 
     
