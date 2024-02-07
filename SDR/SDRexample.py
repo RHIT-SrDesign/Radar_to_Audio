@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-start = 2.0e9 # start at 2.4 GHz
+start = 2.7e9 # start at 2.4 GHz
 end = 3.0e9 # end at 2.9 Ghz
-numcaps = 3 # grab this signal 5 times
+numcaps = 10 # grab this signal 5 times
 limplot = False # dont plot while capturing
 
 
@@ -22,7 +22,7 @@ def main():
 
     # Plot the time domain data points
     plt.figure(figsize=(10, 6))
-    plt.plot(time,data)
+    plt.plot(np.abs(data))
     plt.xlabel('Time')
     plt.ylabel('Amplitude')
     plt.legend()

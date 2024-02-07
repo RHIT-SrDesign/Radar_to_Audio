@@ -57,7 +57,7 @@ def runProc(start,stop,numcaps,limplot):
 
     OVERHEAD = 8
     n_per_shift = 102400
-    file_path = "dump.csv"
+    file_path = "AirportDoppler4.csv"
 
     # start scanning!
     while not SDRWorker.cap(start,stop,n_per_shift,numcaps,file_path,limplot):
@@ -113,6 +113,8 @@ def runProc(start,stop,numcaps,limplot):
     time_per_samp = n_per_shift/sample_rate
     # we now have this new higher effective sample rate which we can use to get the time series data
     new_sample_rate = np.shape(data)[1]/time_per_samp
+
+    print(new_sample_rate)
     # create the time array
     global time
     time = np.array([])
@@ -140,21 +142,9 @@ def runProc(start,stop,numcaps,limplot):
     return True
 
 def getProc(file_path,n_per_shift):
-    # read in CSV file
-    # date of capture, 'date' # indicates the date and time of the following data recording
-    # sample_rate,    'sample_rate' # indicates the sample rate at which the following data was taken in Hz
-    # center_freq,    'center_freq' # indicates the center frequency at which the data was taken in Hz
-    # span,           'freq_span'   # the frequency span that the data was taken in Hz
-    # capture #,      1,            2,          3, ...   # indicates the capture number that the following column of data belongs to
-    # capture time,   t1,           t2,         t3, ...   # indicates the time at which the capture began, in seconds
-    # capture length, L1,           L2,         L3, ... # indicates the time it took to capture, in milliseconds
-    #data,
-    #1,              i1,    q1,    i2,   q2,   i3,   q3,  # iq data at t1 = 0
-    #2,              i1,    q1,    i2,   q2,   i3,   q3,  # iq data at t2 = t1 + 1/sample_rate
-    #3,              i1,    q1,    i2,   q2,   i3,   q3,  # iq data at t3 = t2 + 1/sample_rate
-    # ... and so on and so forth
 
     OVERHEAD = 8
+
 
     with open(file_path, 'r') as csvfile:
         csvreader = csv.reader(csvfile)
@@ -173,53 +163,64 @@ def getProc(file_path,n_per_shift):
         capdurs = metadata[6]
 
         # find number of data points in the file
-        numcols = max([int(s) for s in rows[4][1:]])
+        numcols = max([int(s) for s in rows[4][1:]]) + 1
         numrows = len(rows) - OVERHEAD
         
-        global data    
-        data = np.empty(shape=(numrows,numcols),dtype=np.complex128)
+        # store the fft result in the columns, and each additional cap fft in the rows
+        global fft    
+        fft = np.empty(shape=(numcols,numrows),dtype=np.complex128)
 
         # fill the data array full of data
-        for i in range(1,2*(numcols-1),2):
+        colnum = 0
+        for i in range(1,2*(numcols)+1,2):
+
+            littlearr = np.empty(shape=(numrows,1),dtype=np.complex128)
+
             for k in range(OVERHEAD,numrows,1):
                 real = float(rows[k][i])
                 imag = float(rows[k][i+1])    
-                data[k][int(i/2)] = complex(real,imag)
+                littlearr[k] = complex(real,imag)
 
-    # find the number of sweeps and normresh the data
-    sweeps = numcols/2
+            fft[colnum][:] = littlearr.T
+            colnum = colnum + 1
 
+    global freqs
+    freqs = np.linspace(center_freq-freq_span/2,center_freq+freq_span/2,np.shape(fft)[1]) 
+
+    # Perform iFFT
+    global data
+    data = np.fft.ifft(fft)
     
-    data = normresh(data,n_per_shift,int(sweeps))
 
-    # placeholder
-    #time = np.arange(123)
+    # calculate how long in seconds we sample for in the SDR
+    time_per_samp = n_per_shift/sample_rate
+    # we now have this new higher effective sample rate which we can use to get the time series data
+    new_sample_rate = np.shape(data)[1]/time_per_samp
 
-    numsamples = np.shape(data)[0]
-
+    print(new_sample_rate)
+    # create the time array
     global time
     time = np.array([])
-    # create the time array
-    capnum = max(capnums)
+    
+    # we have 
+    capnum = max(capnums)+1
     for i in range(capnum):
         starttime = captimes[i]
-        duration = capdurs[i]
 
-        littletime = np.arange(starttime,starttime+duration,1/sample_rate)
+        endtime = starttime + n_per_shift/sample_rate
+
+        littletime = np.arange(starttime,endtime,1/new_sample_rate)
         
         time = np.hstack((time,littletime)) 
+
     
     
+    data = data.ravel()
+    time = time[0:np.shape(data)[0]]
+
     # assemble frequency domain representation of the captured signal
     
     # Assuming the signal being broadcast is constant across the entire frequency sweep, we can add every 256 samples together to create a picture of the entire frequency spectrum
-    
-    # Perform FFT
-    global fft
-    fft = np.fft.fft(data)
-    
-    global freqs
-    freqs = np.linspace(center_freq-freq_span/2,center_freq+freq_span/2,len(fft))  
 
     return True
 

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-filename = 'AirportDoppler6.csv'
+filename = 'AirportDoppler4.csv'
 n_per_shift = 102400
 
 def main():
@@ -20,18 +20,15 @@ def main():
 
     # Plot the time domain data points
     plt.figure(figsize=(10, 6))
-    plt.plot(np.abs(data)[102400:2*102400])
+    plt.plot(np.abs(data))
     plt.xlabel('Time')
     plt.ylabel('Amplitude')
     plt.legend()
     plt.grid(True)
     plt.show()
-    
-    # find the PSD
-    power_spectral_density = np.abs(fft)**2 / len(data)
 
     # Plot power spectral density in dB
-    plt.plot(freqs, 10 * np.log10(power_spectral_density))
+    plt.plot(freqs, fft.T)
     plt.title('Power Spectral Density')
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Power/Frequency (dB/Hz)')
