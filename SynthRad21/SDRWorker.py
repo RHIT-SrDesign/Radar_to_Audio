@@ -18,7 +18,6 @@ from tkinter import filedialog
 from PIL import Image, ImageTk
 from datetime import datetime
 import threading
-from midas_tools import MidasFile
 import csv
 from itertools import zip_longest
 import warnings
@@ -81,11 +80,19 @@ def getData(sdr,num_samples):
     ave = np.sum(data)/num_samples
     data = data - ave    
 
+    # scale from 1 to -1
+    data = data / plutomax
+
     return data
 
-def takefft(data):
-    psd = np.abs(np.fft.fftshift(np.fft.fft(data)))**2
-    psd_dB = 10*np.log10(psd)
+def takefft(data,n_per_shift):
+
+
+
+    psd = np.fft.fftshift(np.fft.fft(data,n_per_shift,norm="backward"))
+    psd_dB = 20*np.log10(psd)
+
+    #psd_dB[psd_dB < -cutoff] = 0
 
     return psd_dB
 
@@ -101,7 +108,7 @@ def plot(ax,data,xticks,xlabels):
     ax.set_xticklabels(xlabels)
     
     plt.grid()
-    plt.ylim(top=50,bottom=-30)
+    #plt.ylim(top=50,bottom=-30)
  
     # label the plot axis
     plt.xlabel("MHz")
@@ -111,15 +118,12 @@ def plot(ax,data,xticks,xlabels):
     plt.draw()
     plt.pause(0.1)
 
-def addToFile(filename,data,capnum,captime,caplen):
+def addToFile(data,capnum,captime,caplen):
     global done
     done = False
-   
-    with open(filename, 'r') as file:
-        reader = csv.reader(file)
-        # read the current state of the file
-        rows = list(reader)
-    
+
+    global rows
+
     # write the capture number and the capture time to the file
     capnumrow = rows[4]
     captimerow = rows[5]
@@ -152,39 +156,12 @@ def addToFile(filename,data,capnum,captime,caplen):
             # write I and Q
             rows[rownum].append(f'{data[datarow][0]}')
             rows[rownum].append(f'{data[datarow][1]}')
-            datarow += 1
-
-    # write the updated rows back to the file
-    with open(filename, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerows(rows)
-    
-    #global done   
+            datarow += 1   
     
     done = True
 
-    
-def remix(data,freqdif,sample_rate):
-    # mix the data up or down by freqdif 
-    
-    # Perform FFT
-    fft_result = np.fft.fft(data)
-    
-    # generates from -25 to 25 MHz
-    # Generate frequency axis
-    frequencies = np.fft.fftfreq(len(data), 1/sample_rate)
 
-    # Apply frequency shift
-    shifted_fft_result = fft_result * np.exp(1j * 2 * np.pi * freqdif * frequencies)
-
-
-    # Perform IFFT with shifted frequencies
-    data = np.fft.ifft(np.fft.fftshift(shifted_fft_result))
-
-    return data
-
-
-def cap(start,stop,numcaps,Filename,limplot):
+def cap(start,stop,n_per_shift,numcaps,Filename,limplot):
 
     # define the size of the window
     global UISIZE 
@@ -200,16 +177,19 @@ def cap(start,stop,numcaps,Filename,limplot):
     capturebw = ENDFREQ - STARTFREQ
     bigcenter = (ENDFREQ + STARTFREQ) / 2
 
+    #global cutoff
+    #cutoff = -50 # throw away any data points below -50 dB
 
     # SDR Parameters
     sample_rate = 50e6 # samples per second
+    global plutomax
     plutomax = 2**14 # The PlutoSDR expects samples to be between -2^14 and +2^14, not -1 and +1 like some SDRs
 
     center_freq = STARTFREQ # define a center frequency of 100 MHz for sampling
-    num_samples = 256 # number of data points per call to rx() after smoothing
+    num_samples = n_per_shift # number of data points per call to rx()
 
     # gain parameters
-    RXGAIN = 60 # 0-90 dB
+    RXGAIN = 0 # 0-90 dB
 
     # SDR max frequency points, equal to the sample rate with twice niquiust rate
     FREQPOINTS = num_samples 
@@ -238,7 +218,6 @@ def cap(start,stop,numcaps,Filename,limplot):
     filename = Filename
     with open(filename, 'w', newline='') as file:
         writer = csv.writer(file)
-        reader = csv.reader(file)
         ## Write the CSV in the following format:
         # date of capture, 'date' # indicates the date and time of the following data recording
         # sample_rate,    'sample_rate' # indicates the sample rate at which the following data was taken in Hz
@@ -251,6 +230,9 @@ def cap(start,stop,numcaps,Filename,limplot):
         #2,              i1,    q1,    i2,   q2,   i3,   q3,  # iq data at t2 = t1 + 1/sample_rate
         #3,              i1,    q1,    i2,   q2,   i3,   q3,  # iq data at t3 = t2 + 1/sample_rate
         # ... and so on and so forth
+
+        
+    
 
         header = [  
             ["date of capture",datetime.now()],
@@ -268,12 +250,18 @@ def cap(start,stop,numcaps,Filename,limplot):
         for i in range(numsweeps*num_samples):
             writer.writerow([str(i)])
 
+    with open(filename, 'r', newline='') as file:
+        # list the rows for later editing
+        reader = csv.reader(file)
+        global rows
+        rows = list(reader)
+
+        
+
     # allocate memory for incoming data and full data array
     data = np.empty(shape=(1,num_samples))
-    bigdata = np.empty(shape=(numsweeps,num_samples))
-    
     rawdata = np.empty(shape=(1,num_samples),dtype=np.complex128)
-    bigrawdata = np.empty(shape=(numsweeps,num_samples),dtype=np.complex128)
+    bigdata = np.empty(shape=(numsweeps,num_samples),dtype=np.complex128)
 
     bigstart = datetime.now()
     for k in range(numcaps):
@@ -287,28 +275,17 @@ def cap(start,stop,numcaps,Filename,limplot):
         for i in range(numsweeps):        
             # get the data from the SDR in a [1 x num_samples] array, save it to a big array
             rawdata = getData(sdr,num_samples)
-        
-            if(limplot):
-                # take the fft of the data 
-                data = takefft(rawdata)
 
-            # mix/demix the raw data up or down a little bit to be all in the same center frequency
-            freqdif = bigcenter - center_freq 
-            rawdata = remix(rawdata,freqdif,sample_rate)
+            data=takefft(rawdata,num_samples)
 
-            # save it to the big array
-            bigrawdata[i] = rawdata
-
-        
             
-            # plot the data onto the graph
+            # subtract off the rx gain 
+            data = data - RXGAIN
+
+            # add data to bigdata
+            bigdata[i] = data
+
             if limplot:
-                # subtract off the rx gain 
-                data = data - RXGAIN
-
-                # add data to bigdata
-                bigdata[i] = data
-
                 plot(ax,bigdata,xticks,xlabels)            
 
             # increase the center frequency
@@ -335,12 +312,18 @@ def cap(start,stop,numcaps,Filename,limplot):
 
         # save the data to the file
         #may need to save time at which the grab was performed, or it may be fast enough
-        t3 = threading.Thread(target=addToFile,args=(filename,bigrawdata,k,bigtimeelapse,timeelapse), daemon=True)
+        t3 = threading.Thread(target=addToFile,args=(bigdata,k,bigtimeelapse,timeelapse), daemon=True)
         t3.start()
 
         
     
     # clean up the threads    
     t3.join()
-
+        # write the updated rows back to the file
+    with open(filename, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(rows)
+    
+    #global done
+    
     return True
