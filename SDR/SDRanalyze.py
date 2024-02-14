@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-filename = 'dump.csv'
+filename = 'SDR/pulse.csv'
 n_per_shift = 102400
 
 def main():
