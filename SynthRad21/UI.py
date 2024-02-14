@@ -42,7 +42,7 @@ image_col = [
 ]
 
 
-layout = [[sg.Column(control_col,element_justification='center',vertical_alignment='t'),sg.VSeparator(),sg.Column(image_col),sg.VSeparator()]]
+layout = [[sg.Column(control_col,element_justification='center',vertical_alignment='t'),sg.VSeparator(),sg.Column(image_col)]]
  
 window = sg.Window('Radar Vis', layout, finalize=True, resizable=True)
 
