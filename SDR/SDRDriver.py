@@ -57,7 +57,7 @@ def runProc(start,stop,numcaps,limplot):
 
     OVERHEAD = 8
     n_per_shift = 102400
-    file_path = "AirportDoppler4.csv"
+    file_path = "dump.csv"
 
     # start scanning!
     while not SDRWorker.cap(start,stop,n_per_shift,numcaps,file_path,limplot):
@@ -98,6 +98,7 @@ def runProc(start,stop,numcaps,limplot):
                 imag = float(rows[k][i+1])    
                 littlearr[k] = complex(real,imag)
 
+
             fft[colnum][:] = littlearr.T
             colnum = colnum + 1
 
@@ -106,7 +107,7 @@ def runProc(start,stop,numcaps,limplot):
 
     # Perform iFFT
     global data
-    data = np.fft.ifft(fft)
+    data = np.fft.ifft(fft,n_per_shift,norm="backward")
     
 
     # calculate how long in seconds we sample for in the SDR
@@ -185,7 +186,7 @@ def getProc(file_path,n_per_shift):
             colnum = colnum + 1
 
     global freqs
-    freqs = np.linspace(center_freq-freq_span/2,center_freq+freq_span/2,np.shape(fft)[1]) 
+    freqs = np.linspace(center_freq-freq_span/2 - sample_rate,center_freq+freq_span/2 - sample_rate,np.shape(fft)[1]) 
 
     # Perform iFFT
     global data
@@ -195,6 +196,8 @@ def getProc(file_path,n_per_shift):
     # calculate how long in seconds we sample for in the SDR
     time_per_samp = n_per_shift/sample_rate
     # we now have this new higher effective sample rate which we can use to get the time series data
+
+
     new_sample_rate = np.shape(data)[1]/time_per_samp
 
     print(new_sample_rate)
@@ -204,18 +207,30 @@ def getProc(file_path,n_per_shift):
     
     # we have 
     capnum = max(capnums)+1
+
+
     for i in range(capnum):
         starttime = captimes[i]
 
+        print(i)
+        print(starttime)
+
         endtime = starttime + n_per_shift/sample_rate
 
+        print(endtime)
+
         littletime = np.arange(starttime,endtime,1/new_sample_rate)
+
+        print(np.size(littletime))
         
         time = np.hstack((time,littletime)) 
+        
+        print(np.size(time))
+
 
     
     
-    data = data.ravel()
+    data = data.ravel()[3:]
     time = time[0:np.shape(data)[0]]
 
     # assemble frequency domain representation of the captured signal

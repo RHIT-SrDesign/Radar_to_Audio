@@ -80,11 +80,19 @@ def getData(sdr,num_samples):
     ave = np.sum(data)/num_samples
     data = data - ave    
 
+    # scale from 1 to -1
+    data = data / plutomax
+
     return data
 
-def takefft(data):
-    psd = np.fft.fftshift(np.fft.fft(data))
+def takefft(data,n_per_shift):
+
+
+
+    psd = np.fft.fftshift(np.fft.fft(data,n_per_shift,norm="backward"))
     psd_dB = 20*np.log10(psd)
+
+    #psd_dB[psd_dB < -cutoff] = 0
 
     return psd_dB
 
@@ -100,7 +108,7 @@ def plot(ax,data,xticks,xlabels):
     ax.set_xticklabels(xlabels)
     
     plt.grid()
-    plt.ylim(top=50,bottom=-30)
+    #plt.ylim(top=50,bottom=-30)
  
     # label the plot axis
     plt.xlabel("MHz")
@@ -169,16 +177,19 @@ def cap(start,stop,n_per_shift,numcaps,Filename,limplot):
     capturebw = ENDFREQ - STARTFREQ
     bigcenter = (ENDFREQ + STARTFREQ) / 2
 
+    #global cutoff
+    #cutoff = -50 # throw away any data points below -50 dB
 
     # SDR Parameters
     sample_rate = 50e6 # samples per second
+    global plutomax
     plutomax = 2**14 # The PlutoSDR expects samples to be between -2^14 and +2^14, not -1 and +1 like some SDRs
 
     center_freq = STARTFREQ # define a center frequency of 100 MHz for sampling
     num_samples = n_per_shift # number of data points per call to rx()
 
     # gain parameters
-    RXGAIN = 60 # 0-90 dB
+    RXGAIN = 0 # 0-90 dB
 
     # SDR max frequency points, equal to the sample rate with twice niquiust rate
     FREQPOINTS = num_samples 
@@ -265,7 +276,7 @@ def cap(start,stop,n_per_shift,numcaps,Filename,limplot):
             # get the data from the SDR in a [1 x num_samples] array, save it to a big array
             rawdata = getData(sdr,num_samples)
 
-            data=takefft(rawdata)
+            data=takefft(rawdata,num_samples)
 
             
             # subtract off the rx gain 

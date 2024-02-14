@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-filename = 'AirportDoppler4.csv'
+filename = 'dump.csv'
 n_per_shift = 102400
 
 def main():
@@ -20,7 +20,7 @@ def main():
 
     # Plot the time domain data points
     plt.figure(figsize=(10, 6))
-    plt.plot(np.abs(data))
+    plt.plot(time,np.abs(data))
     plt.xlabel('Time')
     plt.ylabel('Amplitude')
     plt.legend()
