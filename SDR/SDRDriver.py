@@ -58,6 +58,7 @@ def runProc(start,stop,numcaps,limplot):
     OVERHEAD = 8
     n_per_shift = 102400
     file_path = "dump.csv"
+    offset = 100e6
 
     # start scanning!
     while not SDRWorker.cap(start,stop,n_per_shift,numcaps,file_path,limplot):
@@ -102,38 +103,43 @@ def runProc(start,stop,numcaps,limplot):
             fft[colnum][:] = littlearr.T
             colnum = colnum + 1
 
-    global freqs
-    freqs = np.linspace(center_freq-freq_span/2,center_freq+freq_span/2,np.shape(fft)[1]) 
-
-    # Perform iFFT
     global data
     data = np.fft.ifft(fft,n_per_shift,norm="backward")
-    
 
-    # calculate how long in seconds we sample for in the SDR
+    print(np.shape(fft))
+
+     # calculate how long in seconds we sample for in the SDR
     time_per_samp = n_per_shift/sample_rate
     # we now have this new higher effective sample rate which we can use to get the time series data
-    new_sample_rate = np.shape(data)[1]/time_per_samp
+    new_sample_rate = np.shape(fft)[1]/time_per_samp
 
     print(new_sample_rate)
+
+    global freqs
+    freqs = np.linspace(center_freq-freq_span/2-offset,center_freq+freq_span/2-offset,np.shape(fft)[1]) 
+    #freqs = np.fft.fftfreq(np.shape(fft)[1],1/new_sample_rate) + center_freq    
+    
+
     # create the time array
     global time
     time = np.array([])
     
     # we have 
     capnum = max(capnums)+1
+
+
     for i in range(capnum):
         starttime = captimes[i]
 
         endtime = starttime + n_per_shift/sample_rate
 
-        littletime = np.arange(starttime,endtime,1/new_sample_rate)
+        littletime = np.arange(starttime,endtime,1/sample_rate)
         
         time = np.hstack((time,littletime)) 
+        
 
     
-    
-    data = data.ravel()
+    data = data.ravel()[3:]
     time = time[0:np.shape(data)[0]]
 
     # assemble frequency domain representation of the captured signal
@@ -145,6 +151,7 @@ def runProc(start,stop,numcaps,limplot):
 def getProc(file_path,n_per_shift):
 
     OVERHEAD = 8
+    offset = 100e6
 
 
     with open(file_path, 'r') as csvfile:
@@ -185,22 +192,25 @@ def getProc(file_path,n_per_shift):
             fft[colnum][:] = littlearr.T
             colnum = colnum + 1
 
-    global freqs
-    freqs = np.linspace(center_freq-freq_span/2 - sample_rate,center_freq+freq_span/2 - sample_rate,np.shape(fft)[1]) 
-
+    
     # Perform iFFT
     global data
-    data = np.fft.ifft(fft)
-    
+    data = np.fft.ifft(fft,n_per_shift,norm="backward")
 
-    # calculate how long in seconds we sample for in the SDR
+    print(np.shape(fft))
+
+     # calculate how long in seconds we sample for in the SDR
     time_per_samp = n_per_shift/sample_rate
     # we now have this new higher effective sample rate which we can use to get the time series data
-
-
-    new_sample_rate = np.shape(data)[1]/time_per_samp
+    new_sample_rate = np.shape(fft)[1]/time_per_samp
 
     print(new_sample_rate)
+
+    global freqs
+    freqs = np.linspace(center_freq-freq_span/2-offset,center_freq+freq_span/2-offset,np.shape(fft)[1]) 
+    #freqs = np.fft.fftfreq(np.shape(fft)[1],1/new_sample_rate) + center_freq    
+    
+
     # create the time array
     global time
     time = np.array([])
@@ -212,23 +222,13 @@ def getProc(file_path,n_per_shift):
     for i in range(capnum):
         starttime = captimes[i]
 
-        print(i)
-        print(starttime)
-
-        endtime = starttime + n_per_shift/sample_rate
-
-        print(endtime)
+        endtime = starttime + n_per_shift/new_sample_rate
 
         littletime = np.arange(starttime,endtime,1/new_sample_rate)
-
-        print(np.size(littletime))
         
         time = np.hstack((time,littletime)) 
         
-        print(np.size(time))
 
-
-    
     
     data = data.ravel()[3:]
     time = time[0:np.shape(data)[0]]

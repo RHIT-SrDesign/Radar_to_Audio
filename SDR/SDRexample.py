@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-start = 2.0e9 # start at 2.4 GHz
-end = 3.0e9 # end at 2.9 Ghz
+start = 0.5e9 # start at 2.4 GHz
+end = 5.5e9 # end at 2.9 Ghz
 numcaps = 1 # grab this signal 5 times
 limplot = False # dont plot while capturing
 
