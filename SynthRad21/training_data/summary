@@ -4,7 +4,7 @@ data03 has fft of short and long sequences, -10dB to 20dB
 04 also includes modulation types in column 2 of labels. 0 to 20dB. Training data contains the second half of the emitters, test contains the other half.
 05 is generated from scratch. Labels: PW between 0 and 1000us. PRI between 0 and 1000us. 10 to 20dB. No modulation, always 0.
 
-modtype_2, freq_agility_2, pw_agility_2, pri_agility_2, pw_2, pri_2 were generated concurrently, 10 to 20dB.
+modtype_2, freq_agility_2, pw_agility_2, pri_agility_2, pw_2, pri_2 were generated concurrently, 10 to 20dB. Took 40 min to train.
 Normalization parameters
 pwmin  b: 15.286275640628888  m: 805.2782390280091
 pwmax  b: 25.039697983513843  m: 795.5248166851242
