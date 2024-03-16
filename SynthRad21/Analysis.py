@@ -57,10 +57,11 @@ def execute(file ): #= r"SynthRad21\angry_bear_sas.tmp",
 
     fig, (ax) = plt.subplots(nrows=1)
     ax.plot(fftFreq,frq_amplitude_db)
-    
-    # ax.specgram(npData,nfft,mf.sample_rate, sides='onesided')
-    # ax.set_xlabel('Time [sec]')
-    # ax.set_ylabel("Frequency [Hz]")    
+    # values, ybins, xbins, im=ax.specgram(npData,131072,mf.sample_rate, noverlap=26215)
+    # ax.set(title='Specgram')
+    # fig.colorbar(im, ax=ax)
+    # # ax.set_xlabel('Time [sec]')
+    # # ax.set_ylabel("Frequency [Hz]")    
     ax.set_xlabel(txt)
     ax.set_ylabel("Amplitude")    
     plt.close('all')

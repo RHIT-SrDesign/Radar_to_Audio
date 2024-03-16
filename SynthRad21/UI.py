@@ -5,6 +5,7 @@ import UIHelper as ui
 import Analysis 
 from pygame import mixer
 import pygame
+import SDRDriver
 # import SDRexample as SDR
 
 sg.theme('DarkAmber')
@@ -15,15 +16,20 @@ live = False
 pause = False
 running = False
 is_playing = False
+SDRLower = 0
+SDRUpper = 1
+numcaps = 1 # grab this signal 5 times
+limplot = True # dont plot while capturing
 control_col = [
     [sg.Text('Data Load Controls')],
     [sg.Button('Load Sim Data', key = '-Sim-'),sg.Button('Simulation Mode', key = '-Live-')],
-    [sg.Button('Run Reciever', key = '-recieve-'),sg.Button('Load Recieved Data', key = '-Load-')],
+    [sg.Button('Run Reciever', key = '-recieve-'),sg.Button('Process Recieved Data', key = '-Process-')],
     [sg.Frame('Volume',layout = [[sg.Slider(range = (0,100), orientation = 'h', key = '-Vol-')]])],
     [sg.Button('Play', key = '-Play-'),sg.Button('Pause', key = '-Pause-'),sg.Button('Stop', key = '-Stop-')],
     [sg.HorizontalSeparator()],
     [sg.Text('SDR Controls')],
-    [sg.Text('Local Oscilator Frequency (MHz)'),sg.InputText(size=(20,1)), sg.Button('Submit', key = '-CF-')],
+    [sg.Text('Sweep Lower (MHz)'),sg.InputText(size=(20,1), key = '-Low-'), sg.Button('Submit', key = '-LF-')],
+    [sg.Text('Sweep Upper (MHz)'),sg.InputText(size=(20,1), key = '-High-'), sg.Button('Submit', key = '-UF-')]
     ]
 
 CFA  = [('\u2B24'+' No Freq Agility', 'red'), ('\u2B24'+' Frequency Agile', 'green')]
@@ -65,7 +71,11 @@ while True:
                 print("plot on screen now!")
     if event == '-Live-':
         live = not live
-        window.Element('-Live-').update(text='Reciever Mode' if live else 'Simulation Mode', button_color='white on green' if live else 'white on red')
+        window.Element('-Live-').update(text='Reciever Mode' if live else 'Simulation Mode', button_color='white on green' if live else 'black on gold')
+        if live:
+            print("running sweeps")
+            while not SDRDriver.runProc(SDRLower,SDRUpper,numcaps,limplot):
+                pass
     if event == '-Play-':
         is_playing = True
         audio_channel = mixer.Channel(0)
@@ -86,7 +96,31 @@ while True:
         is_playing = False
         window.Element('-Pause-').update(text='Pause')
         audio_channel.stop()
-   
+
+    if event == '-LF-':
+        SDRLower = values['-Low-']
+        print(SDRLower)
+    
+    if event == '-UF-':
+        SDRUpper = values['-High-']
+        print(SDRUpper)
+
+    if event == '-Process-':
+        [data, time, fft, freqs] = SDRDriver.returnData()
+        
+        fig2, (ax) = plt.subplots(nrows=1)
+        ax.plot(freqs, fft.T)
+        #plt.ylim(top=100,bottom=30)
+        ax.set_title('Power Spectral Density')
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('Power/Frequency (dB/Hz)')
+        ax.set_gid(True)
+        plt.close('all')
+        image = fig2
+        print("image created")
+        ui.draw_figure(window['-IMAGE-'], image)
+        print("plot on screen now!")
+
     
 
     
