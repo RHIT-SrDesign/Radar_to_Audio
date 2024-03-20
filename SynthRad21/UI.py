@@ -19,7 +19,7 @@ is_playing = False
 SDRLower = 0
 SDRUpper = 1
 numcaps = 1 # grab this signal 5 times
-limplot = True # dont plot while capturing
+limplot = False # dont plot while capturing
 control_col = [
     [sg.Text('Data Load Controls')],
     [sg.Button('Load Sim Data', key = '-Sim-'),sg.Button('Simulation Mode', key = '-Live-')],
@@ -74,7 +74,11 @@ while True:
         window.Element('-Live-').update(text='Reciever Mode' if live else 'Simulation Mode', button_color='white on green' if live else 'black on gold')
         if live:
             print("running sweeps")
-            while not SDRDriver.runProc(SDRLower,SDRUpper,numcaps,limplot):
+
+            start = float(SDRLower)*1000000
+            stop = float(SDRUpper)*1000000
+
+            while not SDRDriver.runProc(start,stop,numcaps,limplot):
                 pass
     if event == '-Play-':
         is_playing = True
@@ -107,6 +111,8 @@ while True:
 
     if event == '-Process-':
         [data, time, fft, freqs] = SDRDriver.returnData()
+
+        audio = mixer.Sound("audio.wav")
         
         fig2, (ax) = plt.subplots(nrows=1)
         ax.plot(freqs, fft.T)
