@@ -189,7 +189,7 @@ def cap(start,stop,n_per_shift,numcaps,Filename,limplot):
     num_samples = n_per_shift # number of data points per call to rx()
 
     # gain parameters
-    RXGAIN = 0 # 0-90 dB
+    RXGAIN = 60 # 0-90 dB
 
     # SDR max frequency points, equal to the sample rate with twice niquiust rate
     FREQPOINTS = num_samples 
