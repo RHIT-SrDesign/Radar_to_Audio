@@ -89,9 +89,10 @@ class MidasFile(object):
             n_bytes_to_seek = int(n_overlap * self.header['bpe'])
         try:
             data = unpack_data_from_stream(self.header,self.fp,elements=n_elements,endian=self.endian)
+            print(type(data))
         except Exception as e:
             raise(e)
-        data = np.array(data)
+        #data = np.array(data)
         mag = data
         # mag = np.abs(data)
         if n_overlap > 0:
