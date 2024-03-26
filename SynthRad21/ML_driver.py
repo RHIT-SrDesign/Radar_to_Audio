@@ -15,9 +15,9 @@ def characterize(path, data):
 
     x = prepare_data_sequences(data)
 
-    modtype = model_modtype.predict(x)[1]
-    freqagility = model_freqagility.predict(x)[1]
-    priagility = model_priagility.predict(x)[1]
+    modtype = model_modtype.predict(x)[0][1]
+    freqagility = model_freqagility.predict(x)[0][1]
+    priagility = model_priagility.predict(x)[0][1]
 
     return [modtype, freqagility, priagility]
 
@@ -25,8 +25,8 @@ def prepare_data_sequences(input):
     data = np.zeros((1, L, 8))
 
     # Generate all of the features that the model will have available to train on
-    x_short = input[np.arange(0, L-1, 1)]
-    x_long = input[np.arange(0, (L-1)*D, D)]
+    x_short = input[np.arange(0, L, 1)]
+    x_long = input[np.arange(0, (L)*D, D)]
     xf_short = fft(x_short)
     xf_long = fft(x_long)
     x_ms = abs(x_short)
@@ -38,13 +38,13 @@ def prepare_data_sequences(input):
     xf_ml = abs(xf_long)
     xf_pl = np.angle(xf_long)
 
-    data[1,:,0] = x_ms # Time domain magnitude
-    data[1,:,1] = x_ps # Time domain phase
-    data[1,:,2] = x_ml # Time domain magnitude, decimated by 100
-    data[1,:,3] = x_pl # Time domain phase, decimated by 100
-    data[1,:,4] = xf_ms # FFT mag of 1&2
-    data[1,:,5] = xf_ps # FFT phase of 1&2
-    data[1,:,6] = xf_ml # FFT mag of 3&4
-    data[1,:,7] = xf_pl # FFT phase of 3&4
+    data[0,:,0] = x_ms # Time domain magnitude
+    data[0,:,1] = x_ps # Time domain phase
+    data[0,:,2] = x_ml # Time domain magnitude, decimated by 100
+    data[0,:,3] = x_pl # Time domain phase, decimated by 100
+    data[0,:,4] = xf_ms # FFT mag of 1&2
+    data[0,:,5] = xf_ps # FFT phase of 1&2
+    data[0,:,6] = xf_ml # FFT mag of 3&4
+    data[0,:,7] = xf_pl # FFT phase of 3&4
     
     return data
