@@ -6,11 +6,15 @@ import Analysis
 from pygame import mixer
 import pygame
 import SDRDriver
+import ML_driver
+from midas_tools import MidasFile
+
 # import SDRexample as SDR
 
 sg.theme('DarkAmber')
 
 mixer.init()
+model_path = "SynthRad21/temp/checkpoint/"
 file_path = None
 live = False
 pause = False
@@ -20,10 +24,12 @@ SDRLower = 0
 SDRUpper = 1
 numcaps = 1 # grab this signal 5 times
 limplot = False # dont plot while capturing
+predictionArrayPrev = []
+predictionArrayCurrent = []
 control_col = [
     [sg.Text('Data Load Controls')],
     [sg.Button('Load Sim Data', key = '-Sim-'),sg.Button('Simulation Mode', key = '-Live-')],
-    [sg.Button('Run Reciever', key = '-recieve-'),sg.Button('Process Recieved Data', key = '-Process-')],
+    [sg.Button('Process Recieved Data', key = '-Process-')],
     [sg.Frame('Volume',layout = [[sg.Slider(range = (0,100), orientation = 'h', key = '-Vol-')]])],
     [sg.Button('Play', key = '-Play-'),sg.Button('Pause', key = '-Pause-'),sg.Button('Stop', key = '-Stop-')],
     [sg.HorizontalSeparator()],
@@ -32,15 +38,15 @@ control_col = [
     [sg.Text('Sweep Upper (MHz)'),sg.InputText(size=(20,1), key = '-High-'), sg.Button('Submit', key = '-UF-')]
     ]
 
-CFA  = [('\u2B24'+' No Freq Agility', 'red'), ('\u2B24'+' Frequency Agile', 'green')]
+CFA  = [('\u2B24'+' No Freq Agility', 'red'), ('\u2B24'+' Possible Frequency Agility', 'Yellow'), ('\u2B24'+' Frequency Agile', 'green')]
 CFState=0
-PRIA =[('\u2B24'+' No PRI Agility', 'red'), ('\u2B24'+' PRI Agile', 'green')]
+PRIA =[('\u2B24'+' No PRI Agility', 'red'), ('\u2B24'+' Possible PRI Agility', 'Yellow'), ('\u2B24'+' PRI Agile', 'green')]
 PRIState=0
-PWA =[('\u2B24'+' No PW Agility', 'red'), ('\u2B24'+' PW Agile', 'green')]
-PWState = 0
+ModType =[('\u2B24'+' No Modulation', 'red'), ('\u2B24'+' Possible LFM', 'Yellow'),('\u2B24'+' Linear Frequency Modulation', 'green')]
+ModState = 0
 
 image_col = [
-    [sg.Text(text=CFA[CFState][0], text_color=CFA[CFState][1], key='INDICATOR1'), sg.Text(text=PRIA[PRIState][0], text_color=CFA[PRIState][1], key='INDICATOR2'),sg.Text(text=PWA[PWState][0], text_color=CFA[PWState][1], key='INDICATOR3')],
+    [sg.Text(text=CFA[CFState][0], text_color=CFA[CFState][1], key='INDICATOR1'), sg.Text(text=PRIA[PRIState][0], text_color=CFA[PRIState][1], key='INDICATOR2'),sg.Text(text=ModType[ModState][0], text_color=CFA[ModState][1], key='INDICATOR3')],
     [sg.HorizontalSeparator()],
     [sg.pin(sg.Image(key='-IMAGE-'))]
 
@@ -69,6 +75,10 @@ while True:
                 print("image created")
                 ui.draw_figure(window['-IMAGE-'], image)
                 print("plot on screen now!")
+                mf = MidasFile(file_path)
+                data = mf.read_at_time(0, 0.1, reset_time=True)
+                predictionArrayPrev = predictionArrayCurrent
+                predictionArrayCurrent = ML_driver.characterize(model_path, data)
     if event == '-Live-':
         live = not live
         window.Element('-Live-').update(text='Reciever Mode' if live else 'Simulation Mode', button_color='white on green' if live else 'black on gold')
@@ -126,19 +136,34 @@ while True:
         print("image created")
         ui.draw_figure(window['-IMAGE-'], image)
         print("plot on screen now!")
+        predictionArrayCurrent = ML_driver.characterize(model_path, data)
 
-    
-
-    
-    # if event == 'Run Receiever':
-    #     if running == False:
-    #         running = SDR.SDRRun(running)
-    #     else:
-    #         pass
-    
-
-    # if event == '-Load-':
+    if predictionArrayCurrent != predictionArrayPrev:
+        if predictionArrayCurrent[1] > 0.7:
+            CFState = 2
+        if predictionArrayCurrent[2] > 0.7:
+            PRIState = 2
+        if predictionArrayCurrent[0] >0.7:
+            ModState = 2
+        if 0.4 < predictionArrayCurrent[1] < 0.7:
+            CFState = 1
+        if 0.4 < predictionArrayCurrent[2] < 0.7:
+            PRIState = 1
+        if 0.4 < predictionArrayCurrent[0] < 0.7:
+            ModState = 1
+        if predictionArrayCurrent[1] < 0.4:
+            CFState = 0 
+        if predictionArrayCurrent[2] < 0.4:
+            PRIState = 0
+        if predictionArrayCurrent[0] < 0.4:
+            ModState = 0
         
+        window.Element('INDICATOR1').update(ModType[ModState][0])
+        window.Element('INDICATOR1').update(text_color=ModType[ModState][1])
+        window.Element('INDICATOR2').update(PRIA[PRIState][0])
+        window.Element('INDICATOR2').update(text_color=PRIA[PRIState][1])
+        window.Element('INDICATOR3').update(CFA[CFState][0])
+        window.Element('INDICATOR3').update(text_color=CFA[CFState][1])
 
     if event == sg.WIN_CLOSED:
         break
