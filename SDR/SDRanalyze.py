@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-filename = 'AirportDoppler4.csv'
+filename = 'SDR/AirportDoppler4.csv'
 n_per_shift = 102400
 
 def main():

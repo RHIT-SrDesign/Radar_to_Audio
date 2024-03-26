@@ -46,6 +46,9 @@ def remove_below_threshold(arr, threshold):
     filtered_arr = arr[mask]  # Apply mask to filter elements
     return filtered_arr,mask
 
+def remove_fronts(data):
+    length = 4
+
 def sliding_window_average(data, window_size):
     # Pad the data array to handle edge cases
     padded_data = np.pad(data, (window_size//2, window_size//2), mode='edge')
@@ -351,6 +354,7 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
     new = endsamp-startsamp
 
     # here remove all elements that are at the beginning of each capture
+    fft = remove_fronts(fft)
 
     # remove all elements below the threshold
     fft,mask = remove_below_threshold(fft, threshold)
