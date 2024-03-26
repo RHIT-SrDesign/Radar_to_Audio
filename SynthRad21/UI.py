@@ -38,11 +38,11 @@ control_col = [
     [sg.Text('Sweep Upper (MHz)'),sg.InputText(size=(20,1), key = '-High-'), sg.Button('Submit', key = '-UF-')]
     ]
 
-CFA  = [('\u2B24'+' No Freq Agility', 'red'), ('\u2B24'+' Possible Frequency Agility', 'Yellow'), ('\u2B24'+' Frequency Agile', 'green')]
+CFA  = [('\u2B24'+' No Freq Agility', 'red'), ('\u2B24'+' Unknown Frequency Agility', 'Yellow'), ('\u2B24'+' Frequency Agile', 'green')]
 CFState=0
-PRIA =[('\u2B24'+' No PRI Agility', 'red'), ('\u2B24'+' Possible PRI Agility', 'Yellow'), ('\u2B24'+' PRI Agile', 'green')]
+PRIA =[('\u2B24'+' No PRI Agility', 'red'), ('\u2B24'+' Unknown PRI Agility', 'Yellow'), ('\u2B24'+' PRI Agile', 'green')]
 PRIState=0
-ModType =[('\u2B24'+' No Modulation', 'red'), ('\u2B24'+' Possible LFM', 'Yellow'),('\u2B24'+' Linear Frequency Modulation', 'green')]
+ModType =[('\u2B24'+' No Modulation', 'red'), ('\u2B24'+' Unknown LFM', 'Yellow'),('\u2B24'+' Linear Frequency Modulation', 'green')]
 ModState = 0
 
 image_col = [
