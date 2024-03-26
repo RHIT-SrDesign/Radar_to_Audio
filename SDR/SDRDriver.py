@@ -40,6 +40,26 @@ def returnMeta(file_path):
 
     return [captime,sample_rate,center_freq,freq_span,capnums,captimes,capdurs] 
 
+def remove_below_threshold(arr, threshold):
+    magnitudes = arr  # Calculate magnitudes of complex numbers
+    mask = magnitudes >= threshold  # Create a boolean mask for elements above threshold
+    filtered_arr = arr[mask]  # Apply mask to filter elements
+    return filtered_arr,mask
+
+def sliding_window_average(data, window_size):
+    # Pad the data array to handle edge cases
+    padded_data = np.pad(data, (window_size//2, window_size//2), mode='edge')
+    
+    # Create a view of the data with the rolling window
+    shape = padded_data.shape[:-1] + (padded_data.shape[-1] - window_size + 1, window_size)
+    strides = padded_data.strides + (padded_data.strides[-1],)
+    windowed_data = np.lib.stride_tricks.as_strided(padded_data, shape=shape, strides=strides)
+    
+    # Calculate the average within each window
+    window_averages = np.mean(windowed_data, axis=0)
+    
+    return window_averages
+
 def runProc(start,stop,numcaps,limplot):
     # read in CSV file
     # date of capture, 'date' # indicates the date and time of the following data recording
@@ -59,6 +79,8 @@ def runProc(start,stop,numcaps,limplot):
     n_per_shift = 102400
     file_path = "dump.csv"
     offset = 100e6
+    threshold = -300
+
 
     # start scanning!
     while not SDRWorker.cap(start,stop,n_per_shift,numcaps,file_path,limplot):
@@ -103,6 +125,9 @@ def runProc(start,stop,numcaps,limplot):
             fft[colnum][:] = littlearr.T
             colnum = colnum + 1
 
+    # remove all elements below the threshold
+    fft,mask = remove_below_threshold(fft, threshold)
+
     global data
     data = np.fft.ifft(fft,n_per_shift,norm="backward")
 
@@ -119,6 +144,8 @@ def runProc(start,stop,numcaps,limplot):
     freqs = np.linspace(center_freq-freq_span/2-offset,center_freq+freq_span/2-offset,np.shape(fft)[1]) 
     #freqs = np.fft.fftfreq(np.shape(fft)[1],1/new_sample_rate) + center_freq    
     
+    freqs = freqs[mask]
+
 
     # create the time array
     global time
@@ -138,8 +165,12 @@ def runProc(start,stop,numcaps,limplot):
         time = np.hstack((time,littletime)) 
         
 
+    data = data.ravel()
+
+    # remove all elements below the threshold
+    data = remove_below_threshold(data, threshold)
+
     
-    data = data.ravel()[3:]
     time = time[0:np.shape(data)[0]]
 
     # assemble frequency domain representation of the captured signal
@@ -152,6 +183,8 @@ def getProc(file_path,n_per_shift):
 
     OVERHEAD = 8
     offset = 100e6
+    threshold = -300
+    window = 50
 
 
     with open(file_path, 'r') as csvfile:
@@ -196,8 +229,13 @@ def getProc(file_path,n_per_shift):
             fft[colnum][:] = littlearr.T
             colnum = colnum + 1
 
-    print(np.shape(fft))     
     original = np.shape(fft)[1]   
+
+    # perform n point averaging on the frequency data
+    #fft = sliding_window_average(fft,window)
+
+    # remove all elements below the threshold
+    fft,mask = remove_below_threshold(fft, threshold)
 
     # Perform iFFT
     global data
@@ -212,7 +250,9 @@ def getProc(file_path,n_per_shift):
 
     global freqs
     freqs = np.linspace(center_freq-freq_span/2,center_freq+freq_span/2,original) 
+    #freqs = sliding_window_average(freqs,window)
 
+    freqs = freqs[mask]
  
     
 
@@ -234,8 +274,9 @@ def getProc(file_path,n_per_shift):
         time = np.hstack((time,littletime)) 
         
 
+    data = data.ravel()
+
     
-    data = data.ravel()[3:]
     time = time[0:np.shape(data)[0]]
 
     # assemble frequency domain representation of the captured signal
@@ -248,7 +289,7 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
 
     OVERHEAD = 8
     offset = 100e6
-
+    threshold = -300
 
     with open(file_path, 'r') as csvfile:
         csvreader = csv.reader(csvfile)
@@ -283,6 +324,7 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
             littlearr = np.empty(shape=(numrows,1),dtype=np.complex128)
             
             # fill in the entire fft
+            #TODO: at the beginning of every capture, there is a large DC spike, need to get rid of that
             for k in range(OVERHEAD,numrows,1):
                 real = float(rows[k][i])
                 imag = float(rows[k][i+1])    
@@ -308,9 +350,18 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
 
     new = endsamp-startsamp
 
+    # here remove all elements that are at the beginning of each capture
+
+    # remove all elements below the threshold
+    fft,mask = remove_below_threshold(fft, threshold)
+
     # Perform iFFT
     global data
     data = np.fft.ifft(fft,n_per_shift)
+
+    # remove the first 15 and the last 15 elements from the array
+    data = data[15:-15]
+
 
     # calculate how long in seconds we sample for in the SDR
     time_per_samp = n_per_shift/sample_rate
@@ -324,7 +375,7 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
 
     # cut the freqs in half too
     freqs = freqs[startsamp:endsamp]
-    
+    freqs = freqs[mask]
 
     # create the time array
     global time
@@ -338,9 +389,12 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
 
     
     data = data.ravel()
-    print(np.shape(data))
+    
+    time = time[15:-15]
+
     time = time[0:np.shape(data)[0]]
-    print(np.shape(time))
+
+
     # assemble frequency domain representation of the captured signal
     
     # Assuming the signal being broadcast is constant across the entire frequency sweep, we can add every 256 samples together to create a picture of the entire frequency spectrum
