@@ -288,11 +288,16 @@ def getProc(file_path,n_per_shift):
 
     return True
 
+def reverse_and_concatenate(array):
+    reversed_array = array[::-1]  # Reverse the array
+    result = reversed_array + array  # Concatenate the original array to the reversed array
+    return result
+
 def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
 
     OVERHEAD = 8
     offset = 100e6
-    threshold = -300
+    threshold = -200
 
     with open(file_path, 'r') as csvfile:
         csvreader = csv.reader(csvfile)
@@ -354,14 +359,16 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
     new = endsamp-startsamp
 
     # here remove all elements that are at the beginning of each capture
-    fft = remove_fronts(fft)
+    #fft = remove_fronts(fft)
 
     # remove all elements below the threshold
     fft,mask = remove_below_threshold(fft, threshold)
 
+    double_sided_spectrum = reverse_and_concatenate(fft)
+    plt.plot(double_sided_spectrum)
     # Perform iFFT
     global data
-    data = np.fft.ifft(fft,n_per_shift)
+    data = np.fft.irfft(fft)
 
     # remove the first 15 and the last 15 elements from the array
     data = data[15:-15]
@@ -372,6 +379,8 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
     # we now have this new higher effective sample rate which we can use to get the time series data
     new_sample_rate = new/time_per_samp
 
+    
+
     print(new_sample_rate)
 
     global freqs
@@ -381,6 +390,8 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
     freqs = freqs[startsamp:endsamp]
     freqs = freqs[mask]
 
+    data = data.ravel()
+
     # create the time array
     global time
     time = np.array([])
@@ -389,12 +400,17 @@ def getSpecificProc(file_path,n_per_shift,desiredcapnum,startsamp,endsamp):
 
     endtime = starttime + n_per_shift/new_sample_rate
 
-    time = np.arange(starttime,endtime,1/new_sample_rate)        
+    timeelapse = endtime-starttime 
+    numpoints = np.shape(data)[0]
+
+    samplerate = numpoints/timeelapse
+
+    time = np.arange(starttime,endtime,1/samplerate)        
 
     
-    data = data.ravel()
-    
-    time = time[15:-15]
+   
+    print(np.shape(data))
+    print(np.shape(time))
 
     time = time[0:np.shape(data)[0]]
 
