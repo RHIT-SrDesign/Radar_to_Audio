@@ -55,7 +55,8 @@ def execute(file ): #= r"SynthRad21\angry_bear_sas.tmp",
     #Calculate fft information on signal
     #N = (len(elements))
     #nfft = nfft // 1024
-    nfft = 2048*100
+    #nfft = 1024*100
+    nfft = 512
     #fftData=np.fft.fft(npData)
     #fftFreq = np.fft.fftfreq(N,1/mf.sample_rate)
     #fftData = fftData*(1/mf.sample_rate)
@@ -75,14 +76,19 @@ def execute(file ): #= r"SynthRad21\angry_bear_sas.tmp",
     #ax.plot(fftFreq,frq_amplitude_db)
     Fs = mf.sample_rate  # the sampling frequency
 
-    fig, (ax1) = plt.subplots(nrows=1)
+    fig, (ax1) = plt.subplots(nrows=1, layout='constrained')
+    fig.set_size_inches(12,6)
     print(np.shape(npData))
-    Pxx, freqs, bins, im = ax1.specgram(npData, NFFT=nfft, Fs=Fs)
+    vmin = -350
+    vmax = -150
+    Pxx, freqs, bins, im = ax1.specgram(npData, NFFT=nfft, Fs=Fs, noverlap=nfft//2,vmin=vmin, vmax=vmax)
     
     ax1.set(title='Specgram')
-    fig.colorbar(im, ax=ax1)
+    cbar = fig.colorbar(im, ax=ax1,extend='both')
+    cbar.ax.set_ylabel('Amplitude (dB)', rotation=270, fontsize = 10, labelpad=15)
     ax1.set_xlabel('Time [sec]')
-    ax1.set_ylabel("Frequency [Hz]")    
+    ax1.set_ylabel("Baseband Frequency [Hz]") 
+    
     
     #ax2.plot(freqs,Pxx)
 
